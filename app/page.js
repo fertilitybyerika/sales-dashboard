@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   DollarSign, 
   Users, 
@@ -39,6 +39,41 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Default data - only used if nothing is saved
+const defaultClients = [
+  { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+1 555-0101', productName: 'Premium Course', paymentPlan: '3-Pay', revenueSold: 8991, cashCollected: 5994, startDate: '2026-01-15', nextPaymentDate: '2026-02-15', paymentsMade: 2, status: 'Active', notes: 'Referred by Sarah' },
+  { id: 2, firstName: 'Sarah', lastName: 'Smith', email: 'sarah@example.com', phone: '+1 555-0102', productName: 'VIP Coaching', paymentPlan: 'Full Pay', revenueSold: 14997, cashCollected: 14997, startDate: '2026-01-18', nextPaymentDate: null, paymentsMade: 1, status: 'Active', notes: '' },
+  { id: 3, firstName: 'Mike', lastName: 'Johnson', email: 'mike@example.com', phone: '+1 555-0103', productName: 'Premium Course', paymentPlan: '2-Pay', revenueSold: 5994, cashCollected: 2997, startDate: '2026-01-20', nextPaymentDate: '2026-02-20', paymentsMade: 1, status: 'Active', notes: 'Next payment Feb 20' },
+  { id: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', phone: '+1 555-0104', productName: 'Elite Program', paymentPlan: '6-Pay', revenueSold: 17982, cashCollected: 5994, startDate: '2026-01-22', nextPaymentDate: '2026-02-22', paymentsMade: 2, status: 'Active', notes: 'VIP client' },
+  { id: 5, firstName: 'David', lastName: 'Wilson', email: 'david@example.com', phone: '+1 555-0105', productName: 'Premium Course', paymentPlan: 'Full Pay', revenueSold: 2997, cashCollected: 2997, startDate: '2026-01-25', nextPaymentDate: null, paymentsMade: 1, status: 'Active', notes: '' },
+  { id: 6, firstName: 'Lisa', lastName: 'Anderson', email: 'lisa@example.com', phone: '+1 555-0106', productName: 'VIP Coaching', paymentPlan: '4-Pay', revenueSold: 11988, cashCollected: 2997, startDate: '2026-01-28', nextPaymentDate: '2026-02-28', paymentsMade: 1, status: 'Active', notes: 'Corporate referral' },
+  { id: 7, firstName: 'Tom', lastName: 'Martinez', email: 'tom@example.com', phone: '+1 555-0107', productName: 'Elite Program', paymentPlan: '3-Pay', revenueSold: 8991, cashCollected: 2997, startDate: '2026-01-10', nextPaymentDate: '2026-02-10', paymentsMade: 1, status: 'Active', notes: 'Payment overdue' },
+  { id: 8, firstName: 'Anna', lastName: 'Garcia', email: 'anna@example.com', phone: '+1 555-0108', productName: 'Premium Course', paymentPlan: '2-Pay', revenueSold: 5994, cashCollected: 2997, startDate: '2026-01-05', nextPaymentDate: '2026-02-05', paymentsMade: 1, status: 'Active', notes: '' },
+];
+
+const defaultPayments = [
+  { id: 1, clientId: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-15', status: 'Completed', paymentNumber: 1 },
+  { id: 2, clientId: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-28', status: 'Completed', paymentNumber: 2 },
+  { id: 3, clientId: 2, firstName: 'Sarah', lastName: 'Smith', email: 'sarah@example.com', productName: 'VIP Coaching', amount: 14997, paymentSource: 'Bank Transfer', date: '2026-01-18', status: 'Completed', paymentNumber: 1 },
+  { id: 4, clientId: 3, firstName: 'Mike', lastName: 'Johnson', email: 'mike@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-20', status: 'Completed', paymentNumber: 1 },
+  { id: 5, clientId: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'PayPal', date: '2026-01-22', status: 'Completed', paymentNumber: 1 },
+  { id: 6, clientId: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'PayPal', date: '2026-01-29', status: 'Completed', paymentNumber: 2 },
+  { id: 7, clientId: 5, firstName: 'David', lastName: 'Wilson', email: 'david@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-25', status: 'Completed', paymentNumber: 1 },
+  { id: 8, clientId: 6, firstName: 'Lisa', lastName: 'Anderson', email: 'lisa@example.com', productName: 'VIP Coaching', amount: 2997, paymentSource: 'Stripe', date: '2026-01-28', status: 'Completed', paymentNumber: 1 },
+  { id: 9, clientId: 7, firstName: 'Tom', lastName: 'Martinez', email: 'tom@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'Stripe', date: '2026-01-10', status: 'Completed', paymentNumber: 1 },
+  { id: 10, clientId: 8, firstName: 'Anna', lastName: 'Garcia', email: 'anna@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-05', status: 'Completed', paymentNumber: 1 },
+];
+
+const defaultSalesData = [
+  { id: 1, date: '2026-01-25', scScheduled: 12, scRescheduled: 2, scCompleted: 8, offerMade: 7, salesClients: 2, revenue: 5994, cashCollected: 3996 },
+  { id: 2, date: '2026-01-26', scScheduled: 15, scRescheduled: 1, scCompleted: 11, offerMade: 9, salesClients: 3, revenue: 8991, cashCollected: 5994 },
+  { id: 3, date: '2026-01-27', scScheduled: 10, scRescheduled: 3, scCompleted: 6, offerMade: 5, salesClients: 2, revenue: 9994, cashCollected: 4997 },
+  { id: 4, date: '2026-01-28', scScheduled: 18, scRescheduled: 2, scCompleted: 14, offerMade: 12, salesClients: 4, revenue: 15988, cashCollected: 10991 },
+  { id: 5, date: '2026-01-29', scScheduled: 14, scRescheduled: 1, scCompleted: 10, offerMade: 8, salesClients: 3, revenue: 12985, cashCollected: 7991 },
+  { id: 6, date: '2026-01-30', scScheduled: 16, scRescheduled: 2, scCompleted: 12, offerMade: 10, salesClients: 4, revenue: 17985, cashCollected: 11988 },
+  { id: 7, date: '2026-01-31', scScheduled: 20, scRescheduled: 3, scCompleted: 15, offerMade: 13, salesClients: 5, revenue: 22982, cashCollected: 14985 },
+];
+
 export default function SalesDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -55,43 +90,50 @@ export default function SalesDashboard() {
   const [reminderFilter, setReminderFilter] = useState('all');
   const [openActionMenu, setOpenActionMenu] = useState(null);
   const [openActionMenuType, setOpenActionMenuType] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [clients, setClients] = useState([
-    { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+1 555-0101', productName: 'Premium Course', paymentPlan: '3-Pay', revenueSold: 8991, cashCollected: 5994, startDate: '2026-01-15', nextPaymentDate: '2026-02-15', paymentsMade: 2, status: 'Active', notes: 'Referred by Sarah' },
-    { id: 2, firstName: 'Sarah', lastName: 'Smith', email: 'sarah@example.com', phone: '+1 555-0102', productName: 'VIP Coaching', paymentPlan: 'Full Pay', revenueSold: 14997, cashCollected: 14997, startDate: '2026-01-18', nextPaymentDate: null, paymentsMade: 1, status: 'Active', notes: '' },
-    { id: 3, firstName: 'Mike', lastName: 'Johnson', email: 'mike@example.com', phone: '+1 555-0103', productName: 'Premium Course', paymentPlan: '2-Pay', revenueSold: 5994, cashCollected: 2997, startDate: '2026-01-20', nextPaymentDate: '2026-02-20', paymentsMade: 1, status: 'Active', notes: 'Next payment Feb 20' },
-    { id: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', phone: '+1 555-0104', productName: 'Elite Program', paymentPlan: '6-Pay', revenueSold: 17982, cashCollected: 5994, startDate: '2026-01-22', nextPaymentDate: '2026-02-22', paymentsMade: 2, status: 'Active', notes: 'VIP client' },
-    { id: 5, firstName: 'David', lastName: 'Wilson', email: 'david@example.com', phone: '+1 555-0105', productName: 'Premium Course', paymentPlan: 'Full Pay', revenueSold: 2997, cashCollected: 2997, startDate: '2026-01-25', nextPaymentDate: null, paymentsMade: 1, status: 'Active', notes: '' },
-    { id: 6, firstName: 'Lisa', lastName: 'Anderson', email: 'lisa@example.com', phone: '+1 555-0106', productName: 'VIP Coaching', paymentPlan: '4-Pay', revenueSold: 11988, cashCollected: 2997, startDate: '2026-01-28', nextPaymentDate: '2026-02-28', paymentsMade: 1, status: 'Active', notes: 'Corporate referral' },
-    { id: 7, firstName: 'Tom', lastName: 'Martinez', email: 'tom@example.com', phone: '+1 555-0107', productName: 'Elite Program', paymentPlan: '3-Pay', revenueSold: 8991, cashCollected: 2997, startDate: '2026-01-10', nextPaymentDate: '2026-02-10', paymentsMade: 1, status: 'Active', notes: 'Payment overdue' },
-    { id: 8, firstName: 'Anna', lastName: 'Garcia', email: 'anna@example.com', phone: '+1 555-0108', productName: 'Premium Course', paymentPlan: '2-Pay', revenueSold: 5994, cashCollected: 2997, startDate: '2026-01-05', nextPaymentDate: '2026-02-05', paymentsMade: 1, status: 'Active', notes: '' },
-  ]);
-  
-  const [payments, setPayments] = useState([
-    { id: 1, clientId: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-15', status: 'Completed', paymentNumber: 1 },
-    { id: 2, clientId: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-28', status: 'Completed', paymentNumber: 2 },
-    { id: 3, clientId: 2, firstName: 'Sarah', lastName: 'Smith', email: 'sarah@example.com', productName: 'VIP Coaching', amount: 14997, paymentSource: 'Bank Transfer', date: '2026-01-18', status: 'Completed', paymentNumber: 1 },
-    { id: 4, clientId: 3, firstName: 'Mike', lastName: 'Johnson', email: 'mike@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-20', status: 'Completed', paymentNumber: 1 },
-    { id: 5, clientId: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'PayPal', date: '2026-01-22', status: 'Completed', paymentNumber: 1 },
-    { id: 6, clientId: 4, firstName: 'Emily', lastName: 'Brown', email: 'emily@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'PayPal', date: '2026-01-29', status: 'Completed', paymentNumber: 2 },
-    { id: 7, clientId: 5, firstName: 'David', lastName: 'Wilson', email: 'david@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-25', status: 'Completed', paymentNumber: 1 },
-    { id: 8, clientId: 6, firstName: 'Lisa', lastName: 'Anderson', email: 'lisa@example.com', productName: 'VIP Coaching', amount: 2997, paymentSource: 'Stripe', date: '2026-01-28', status: 'Completed', paymentNumber: 1 },
-    { id: 9, clientId: 7, firstName: 'Tom', lastName: 'Martinez', email: 'tom@example.com', productName: 'Elite Program', amount: 2997, paymentSource: 'Stripe', date: '2026-01-10', status: 'Completed', paymentNumber: 1 },
-    { id: 10, clientId: 8, firstName: 'Anna', lastName: 'Garcia', email: 'anna@example.com', productName: 'Premium Course', amount: 2997, paymentSource: 'Stripe', date: '2026-01-05', status: 'Completed', paymentNumber: 1 },
-  ]);
-  
-  const [salesData, setSalesData] = useState([
-    { id: 1, date: '2026-01-25', scScheduled: 12, scRescheduled: 2, scCompleted: 8, offerMade: 7, salesClients: 2, revenue: 5994, cashCollected: 3996 },
-    { id: 2, date: '2026-01-26', scScheduled: 15, scRescheduled: 1, scCompleted: 11, offerMade: 9, salesClients: 3, revenue: 8991, cashCollected: 5994 },
-    { id: 3, date: '2026-01-27', scScheduled: 10, scRescheduled: 3, scCompleted: 6, offerMade: 5, salesClients: 2, revenue: 9994, cashCollected: 4997 },
-    { id: 4, date: '2026-01-28', scScheduled: 18, scRescheduled: 2, scCompleted: 14, offerMade: 12, salesClients: 4, revenue: 15988, cashCollected: 10991 },
-    { id: 5, date: '2026-01-29', scScheduled: 14, scRescheduled: 1, scCompleted: 10, offerMade: 8, salesClients: 3, revenue: 12985, cashCollected: 7991 },
-    { id: 6, date: '2026-01-30', scScheduled: 16, scRescheduled: 2, scCompleted: 12, offerMade: 10, salesClients: 4, revenue: 17985, cashCollected: 11988 },
-    { id: 7, date: '2026-01-31', scScheduled: 20, scRescheduled: 3, scCompleted: 15, offerMade: 13, salesClients: 5, revenue: 22982, cashCollected: 14985 },
-  ]);
+  // Initialize state with empty arrays first
+  const [clients, setClients] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [salesData, setSalesData] = useState([]);
+
+  // Load data from localStorage on first render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedClients = localStorage.getItem('dashboard_clients');
+      const savedPayments = localStorage.getItem('dashboard_payments');
+      const savedSales = localStorage.getItem('dashboard_sales');
+      
+      setClients(savedClients ? JSON.parse(savedClients) : defaultClients);
+      setPayments(savedPayments ? JSON.parse(savedPayments) : defaultPayments);
+      setSalesData(savedSales ? JSON.parse(savedSales) : defaultSalesData);
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // Save clients to localStorage whenever they change
+  useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('dashboard_clients', JSON.stringify(clients));
+    }
+  }, [clients, isLoaded]);
+
+  // Save payments to localStorage whenever they change
+  useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('dashboard_payments', JSON.stringify(payments));
+    }
+  }, [payments, isLoaded]);
+
+  // Save sales data to localStorage whenever it changes
+  useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('dashboard_sales', JSON.stringify(salesData));
+    }
+  }, [salesData, isLoaded]);
 
   const getPaymentPlanDetails = (plan) => {
     const plans = {
@@ -423,6 +465,18 @@ export default function SalesDashboard() {
     color: COLORS[index % COLORS.length]
   }));
 
+  // Function to reset all data to defaults
+  const handleResetData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('dashboard_clients');
+      localStorage.removeItem('dashboard_payments');
+      localStorage.removeItem('dashboard_sales');
+      setClients(defaultClients);
+      setPayments(defaultPayments);
+      setSalesData(defaultSalesData);
+    }
+  };
+
   React.useEffect(() => {
     const handleClickOutside = () => closeActionMenu();
     if (openActionMenu !== null) {
@@ -430,6 +484,20 @@ export default function SalesDashboard() {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [openActionMenu]);
+
+  // Show loading state while data is being loaded
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8f7f4' }}>
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#660631' }}>
+            <BarChart3 className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const ActionMenu = ({ item, type, options }) => (
     <div className="relative">
@@ -546,7 +614,7 @@ export default function SalesDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
                     { title: 'Revenue Sold', value: `$${clientStats.totalRevenueSold.toLocaleString()}`, icon: DollarSign, sub: `${clientStats.totalClients} total clients` },
-                    { title: 'Cash Collected', value: `$${clientStats.totalCashCollected.toLocaleString()}`, icon: CreditCard, sub: `${((clientStats.totalCashCollected / clientStats.totalRevenueSold) * 100).toFixed(0)}% collected` },
+                    { title: 'Cash Collected', value: `$${clientStats.totalCashCollected.toLocaleString()}`, icon: CreditCard, sub: `${((clientStats.totalCashCollected / clientStats.totalRevenueSold) * 100 || 0).toFixed(0)}% collected` },
                     { title: 'Revenue Pending', value: `$${clientStats.totalRevenuePending.toLocaleString()}`, icon: Clock, sub: `${upcomingPayments.length} payments scheduled` },
                     { title: 'Close Rate', value: `${salesTotals.closeRate.toFixed(1)}%`, icon: Target, sub: `${salesTotals.salesClients} of ${salesTotals.scCompleted} closed` },
                   ].map((card, idx) => (
@@ -684,6 +752,20 @@ export default function SalesDashboard() {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* Reset Data Button */}
+                <div className="flex justify-end">
+                  <button 
+                    onClick={() => {
+                      if (confirm('Are you sure you want to reset all data to defaults? This cannot be undone.')) {
+                        handleResetData();
+                      }
+                    }} 
+                    className="px-4 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    Reset to Demo Data
+                  </button>
                 </div>
               </div>
             )}
